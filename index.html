@@ -839,8 +839,8 @@ let powerups = [
       { price: 100, boost: 5 },
       { price: 200, boost: 5 },
       { price: 400, boost: 5 },
-      { price: 800, boost: 5 },
-      { price: 1600, boost: 5 }
+      { price: 1000, boost: 10 },
+      { price: 1600, boost: 15 }
     ],
     currentLevel: 0,
     apply: (level) => {
@@ -1473,8 +1473,12 @@ function showShopSection(section) {
 
 function buyItem(itemName) {
   const item = shopItems.find(i => i.name === itemName);
-  if (money >= item.price) {
-    money -= item.price;
+  let cost = item.price;
+  if (item.type === 'weapon' && item.bought) {
+    cost = item.price / 2; // Half price for ammo refill
+  }
+  if (money >= cost) {
+    money -= cost;
     if (item.type === 'weapon') {
       if (!item.bought) {
         item.bought = true;
@@ -2169,24 +2173,24 @@ function updateShopDisplay() {
     itemElement.className = 'shop-item';
     
     if (item.type === 'weapon') {
-      itemElement.innerHTML = `
-        <div class="shop-item-content">
-          <span class="shop-item-name">${item.name}</span>
-          <span>Damage: ${item.damage}, Fire Rate: ${1000 / item.fireRate} shots/s</span>
-        </div>
-        <div class="shop-item-actions">
-          <span class="shop-item-price">$${item.price}</span>
-          ${item.bought ?
-            `<button onclick="buyItem('${item.name}')">Refill Ammo ($${item.price / 2})</button>
-             <button onclick="equipWeapon('${item.name}')" ${item.equipped ? 'disabled' : ''}>
-               ${item.equipped ? 'Equipped' : 'Equip'}
-             </button>` :
-            `<button onclick="buyItem('${item.name}')">Buy</button>`
-          }
-        </div>
-      `;
-      weaponsSection.appendChild(itemElement);
-    } else if (item.type === 'equipment') {
+  itemElement.innerHTML = `
+    <div class="shop-item-content">
+      <span class="shop-item-name">${item.name}</span>
+      <span>Damage: ${item.damage}, Fire Rate: ${1000 / item.fireRate} shots/s</span>
+    </div>
+    <div class="shop-item-actions">
+      <span class="shop-item-price">$${item.price}</span>
+      ${item.bought ?
+        `<button onclick="buyItem('${item.name}')">Refill Ammo ($${item.price / 2})</button>
+         <button onclick="equipWeapon('${item.name}')" ${item.equipped ? 'disabled' : ''}>
+           ${item.equipped ? 'Equipped' : 'Equip'}
+         </button>` :
+        `<button onclick="buyItem('${item.name}')">Buy</button>`
+      }
+    </div>
+  `;
+  weaponsSection.appendChild(itemElement);
+ }  else if (item.type === 'equipment') {
       itemElement.innerHTML = `
         <span class="shop-item-name">${item.name}</span>
         <span class="shop-item-price">$${item.price}</span>
