@@ -556,6 +556,21 @@
     margin-top: 5px;
   }
 
+  #mute-message {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,40,0,0.6);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  text-align: center;
+  z-index: 1000;
+  display: none;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -567,6 +582,7 @@
 </audio>  
 
 <div id="game-container">
+  <div id="mute-message">Press M to Mute Music</div>
   <div id="hud" style="display: none;">
     <h3>Player Stats</h3>
     <div class="stat">
@@ -1272,7 +1288,7 @@ function createEnemy(type = 'normal') {
   const healthBarGeometry = new THREE.PlaneGeometry(healthBarWidth, healthBarHeight);
   const healthBarMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
   const healthBar = new THREE.Mesh(healthBarGeometry, healthBarMaterial);
-  healthBar.position.set(0, 3, 0);
+  healthBar.position.set(0, 2.75, 0);
   enemy.add(healthBar);
 
   // Set enemy properties
@@ -1287,7 +1303,10 @@ function createEnemy(type = 'normal') {
 
   // Create a bounding box for the enemy
   const boundingBox = new THREE.Box3().setFromObject(enemy);
+  const boundingSphere = new THREE.Sphere();
+  boundingBox.getBoundingSphere(boundingSphere);
   enemy.boundingBox = boundingBox;
+  enemy.boundingSphere = boundingSphere;
 
   return enemy;
 }
@@ -1331,16 +1350,23 @@ function createFaceTexture(type) {
 
 function updateBullets() {
   for (let i = bullets.length - 1; i >= 0; i--) {
-    bullets[i].position.add(bullets[i].velocity);
+    const bullet = bullets[i];
+    const oldPosition = bullet.position.clone();
+    bullet.position.add(bullet.velocity);
     
-    if (bullets[i].position.distanceTo(player.position) > MAP_SIZE) {
-      scene.remove(bullets[i]);
+    if (bullet.position.distanceTo(player.position) > MAP_SIZE) {
+      scene.remove(bullet);
       bullets.splice(i, 1);
       continue;
     }
     
+    const ray = new THREE.Ray(oldPosition, bullet.velocity.clone().normalize());
+    const bulletMovement = oldPosition.distanceTo(bullet.position);
+    
+    let hitEnemy = false;
     for (let j = enemies.length - 1; j >= 0; j--) {
-      if (checkCollision(bullets[i], enemies[j])) {
+      if (checkBulletEnemyCollision(ray, enemies[j], bulletMovement)) {
+        hitEnemy = true;
         const weaponDamage = shopItems.find(item => item.name.toLowerCase().includes(currentWeapon)).damage;
         enemies[j].health -= weaponDamage;
         enemies[j].updateHealthBar();
@@ -1353,14 +1379,41 @@ function updateBullets() {
           updateMoneyDisplay();
         }
         
-        scene.remove(bullets[i]);
+        scene.remove(bullet);
         bullets.splice(i, 1);
         updateHUD();
         if (enemies.length === 0) levelComplete();
         break;
       }
     }
+    
+    if (hitEnemy) {
+      break;
+    }
   }
+}
+
+function checkBulletEnemyCollision(ray, enemy, bulletMovement) {
+  const enemyBox = new THREE.Box3().setFromObject(enemy);
+  const enemySphere = new THREE.Sphere();
+  enemyBox.getBoundingSphere(enemySphere);
+
+  // First, do a quick sphere intersection test
+  if (!ray.intersectsSphere(enemySphere)) {
+    return false;
+  }
+
+  // If the sphere test passes, do a more precise box intersection test
+  const intersectionPoint = new THREE.Vector3();
+  const intersects = ray.intersectBox(enemyBox, intersectionPoint);
+
+  if (intersects) {
+    // Check if the intersection point is within the bullet's movement this frame
+    const distanceToIntersection = ray.origin.distanceTo(intersectionPoint);
+    return distanceToIntersection <= bulletMovement;
+  }
+
+  return false;
 }
 
 function checkCollision(bullet, enemy) {
@@ -1881,23 +1934,36 @@ function spawnEnemies() {
 function updateEnemies() {
   enemies.forEach(enemy => {
     const dir = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+
+    enemy.boundingBox.setFromObject(enemy);
+    enemy.boundingBox.getBoundingSphere(enemy.boundingSphere);
     
-    if (enemy.type === 'normal' || enemy.position.distanceTo(player.position) < 10) {
-      enemy.position.add(dir.multiplyScalar(0.07 + level * 0.005));
-    } else if (enemy.type === 'ranged') {
-      const projectileRange = 10 + level * 2; // Increase range with level
-      if (enemy.position.distanceTo(player.position) <= projectileRange && Math.random() < 0.05) { // Increased frequency
-        shootEnemyProjectile(enemy);
-      }
-    }
+    // Make both normal and ranged enemies move
+    const speed = enemy.type === 'normal' ? 0.09 + level * 0.004 : 0.09 + level * 0.003;
+    enemy.position.add(dir.multiplyScalar(speed));
     
     enemy.lookAt(player.position);
     
     enemy.boundingBox.setFromObject(enemy);
     
     if (enemy.position.distanceTo(player.position) < 1.5) {
-      const damage = Math.max(1, Math.floor(10 * (level / 10))); // Increase damage with level
-      applyDamageToPlayer(damage);
+      const damage = Math.max(1, Math.floor(10 * (level / 10)));
+      if (shield > 0) {
+        shield = Math.max(0, shield - damage);
+      } else {
+        health = Math.max(0, health - damage);
+      }
+      updateHUD();
+      showDamageOverlay();
+      if (health <= 0) gameOver();
+    }
+    
+    // Ranged enemies shoot projectiles
+    if (enemy.type === 'ranged' && Math.random() < 0.01) {
+      const projectileRange = 15 + level * 2;
+      if (enemy.position.distanceTo(player.position) <= projectileRange) {
+        shootEnemyProjectile(enemy);
+      }
     }
   });
 }
@@ -1944,7 +2010,7 @@ function shootEnemyProjectile(enemy) {
   const direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
   const speed = 0.5;
   projectile.velocity = direction.multiplyScalar(speed);
-  projectile.damage = Math.max(1, Math.floor(5 * (level / 10))); // Set damage based on level
+  projectile.damage = 5 + Math.floor(level / 2); // Increase damage based on level
   scene.add(projectile);
   bullets.push(projectile);
 }
@@ -2295,6 +2361,7 @@ document.getElementById('start-button').addEventListener('click', () => {
   document.getElementById('minimap').style.display = 'block';
   document.getElementById('money-display').style.display = 'block';
   document.getElementById('inventory').style.display = 'block';
+  document.getElementById('mute-message').style.display = 'block';
 
   if (isMusicOn) {
     backgroundMusic.play();
