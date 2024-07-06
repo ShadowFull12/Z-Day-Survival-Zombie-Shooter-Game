@@ -1943,7 +1943,7 @@ function updateEnemies() {
     enemy.boundingBox.getBoundingSphere(enemy.boundingSphere);
     
     // Make both normal and ranged enemies move
-    const speed = enemy.type === 'normal' ? 0.09 + level * 0.004 : 0.09 + level * 0.003;
+    const speed = enemy.type === 'normal' ? 0.03 + level * 0.004 : 0.04 + level * 0.003;
     enemy.position.add(dir.multiplyScalar(speed));
     
     enemy.lookAt(player.position);
