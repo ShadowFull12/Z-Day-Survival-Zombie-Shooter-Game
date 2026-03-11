@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark apocalyptic theme with blood red accents */
+  --background: 0 0% 4%;
+  --foreground: 0 0% 95%;
+  
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 95%;
+  
+  --primary: 0 72% 51%;
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 120 100% 20%;
+  --secondary-foreground: 0 0% 100%;
+  
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+  
+  --accent: 45 100% 50%;
+  --accent-foreground: 0 0% 0%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  
+  --border: 0 0% 18%;
+  --ring: 0 72% 51%;
+  
+  --radius: 0.75rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
+
+/* Glow effects */
+.glow-primary {
+  box-shadow: 0 0 20px 5px hsl(var(--primary) / 0.3),
+              0 0 40px 10px hsl(var(--primary) / 0.1);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 20px 5px hsl(var(--secondary) / 0.3),
+              0 0 40px 10px hsl(var(--secondary) / 0.1);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px 5px hsl(var(--accent) / 0.3),
+              0 0 40px 10px hsl(var(--accent) / 0.1);
+}
+
+/* Text glow */
+.text-glow {
+  text-shadow: 0 0 10px currentColor,
+               0 0 20px currentColor,
+               0 0 40px currentColor;
+}
+
+/* Glass morphism */
+.glass {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* Scanline effect */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    hsl(var(--foreground) / 0.03) 2px,
+    hsl(var(--foreground) / 0.03) 4px
+  );
+  pointer-events: none;
+}
+
+/* Loading bar animation */
+@keyframes loading-bar {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.loading-bar {
+  animation: loading-bar 2s ease-in-out forwards;
+}
+
+/* Damage vignette */
+.damage-vignette {
+  box-shadow: inset 0 0 100px 30px hsl(var(--destructive) / 0.5);
+}
+
+/* Button styles */
+.btn-primary {
+  @apply relative overflow-hidden px-8 py-4 rounded-lg font-semibold uppercase tracking-wider;
+  @apply bg-primary text-primary-foreground;
+  @apply transition-all duration-300;
+  @apply hover:scale-105 hover:shadow-lg hover:shadow-primary/30;
+  @apply active:scale-95;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+}
+
+.btn-secondary {
+  @apply relative overflow-hidden px-6 py-3 rounded-lg font-medium uppercase tracking-wider;
+  @apply bg-secondary text-secondary-foreground;
+  @apply transition-all duration-300;
+  @apply hover:scale-105 hover:shadow-lg hover:shadow-secondary/30;
+  @apply active:scale-95;
+}
+
+.btn-ghost {
+  @apply px-6 py-3 rounded-lg font-medium uppercase tracking-wider;
+  @apply bg-transparent text-foreground border border-border;
+  @apply transition-all duration-300;
+  @apply hover:bg-muted hover:border-primary;
+  @apply active:scale-95;
+}
+
+/* HUD styles */
+.hud-panel {
+  @apply glass rounded-lg p-4;
+  @apply border border-border/50;
+}
+
+/* Progress bar */
+.progress-bar {
+  @apply h-2 rounded-full overflow-hidden;
+  @apply bg-muted;
+}
+
+.progress-fill {
+  @apply h-full rounded-full transition-all duration-300;
+}
+
+.progress-health .progress-fill {
+  @apply bg-gradient-to-r from-destructive to-orange-500;
+}
+
+.progress-stamina .progress-fill {
+  @apply bg-gradient-to-r from-secondary to-emerald-400;
+}
+
+.progress-shield .progress-fill {
+  @apply bg-gradient-to-r from-blue-600 to-cyan-400;
+}
+
+.progress-ammo .progress-fill {
+  @apply bg-gradient-to-r from-accent to-yellow-300;
+}
